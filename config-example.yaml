@@ -1,0 +1,128 @@
+database:
+  name: my_database
+  path: ./data/vector.db
+
+logging:
+  enabled: true
+  level: INFO
+  log_to_console: true
+  log_to_file: false
+  file_path: ./logs/milvuslite.log
+  log_duration_ms: false
+  log_operations: true
+  redact_vectors: false
+
+defaults:
+  auto_create_collection: true
+  auto_create_index: true
+  auto_load_collection: true
+  default_metric_type: COSINE
+  default_index_type: FLAT
+
+collections:
+
+  # Example 1: Text document collection with vector search (FLAT — small dataset)
+  documents:
+    enabled: true
+    description: General document store with semantic search
+    agent_usage: Use this collection to store and search documents by semantic similarity
+    primary_key:
+      field: id
+      auto_id: false
+    columns:
+      - name: title
+        type: text
+        required: true
+        description: Document title
+        agent_usage: Use this field to filter or display the document title
+      - name: content
+        type: text
+        required: true
+        description: Full document content
+        agent_usage: Main text body used for keyword filtering
+      - name: category
+        type: text
+        description: Document category
+        agent_usage: Filter documents by category
+      - name: score
+        type: float
+        description: Relevance score
+      - name: published
+        type: bool
+        description: Whether the document is published
+      - name: metadata
+        type: json
+        description: Arbitrary metadata
+      - name: embedding
+        type: vector
+        dimension: 768
+        metric_type: COSINE
+        description: Semantic embedding of the document content
+        agent_usage: Use this field for semantic similarity search
+        index:
+          enabled: true
+          type: FLAT
+          params: {}
+
+  # Example 2: Large-scale collection using HNSW (best speed/recall tradeoff)
+  articles:
+    enabled: true
+    description: High-volume article store optimised for fast search
+    agent_usage: Use this collection to search articles by semantic meaning
+    primary_key:
+      field: id
+      auto_id: false
+    columns:
+      - name: title
+        type: text
+        required: true
+      - name: author
+        type: text
+      - name: tags
+        type: json
+      - name: embedding
+        type: vector
+        dimension: 1536
+        metric_type: COSINE
+        index:
+          enabled: true
+          type: HNSW
+          params:
+            M: 16
+            efConstruction: 200
+
+  # Example 3: Image collection using L2 metric (Euclidean distance)
+  images:
+    enabled: true
+    description: Image embeddings for visual similarity search
+    agent_usage: Use this collection to find visually similar images
+    primary_key:
+      field: id
+      auto_id: true
+    columns:
+      - name: filename
+        type: text
+        required: true
+      - name: embedding
+        type: vector
+        dimension: 512
+        metric_type: L2
+        index:
+          enabled: true
+          type: IVF_FLAT
+          params:
+            nlist: 128
+
+  # Example 4: Disabled collection (skipped by sync_schema)
+  archive:
+    enabled: false
+    description: Archived data — not in active use
+    primary_key:
+      field: id
+      auto_id: false
+    columns:
+      - name: content
+        type: text
+      - name: embedding
+        type: vector
+        dimension: 768
