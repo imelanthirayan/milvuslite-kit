@@ -18,60 +18,30 @@ with MilvusLiteKit.from_yaml("config.yaml") as plugin:
 ## Architecture
 
 ```mermaid
-flowchart TD
-    User(["Your Application"])
-
-    subgraph milvuslite_kit["milvuslite-kit"]
-        Plugin["MilvusLiteKit\n(plugin.py)"]
-
-        subgraph config["Config Layer"]
-            Loader["loader.py\nload_config()"]
-            Validator["validator.py\nvalidate_config()"]
-        end
-
-        subgraph models["Models"]
-            CollModel["CollectionModel"]
-            ColModel["ColumnModel"]
-        end
-
-        subgraph core["Core Layer"]
-            ClientWrapper["MilvusClientWrapper\n(lazy connection)"]
-            CollMgr["CollectionManager\nsync / drop / reset"]
-            IdxMgr["IndexManager\ncreate_index"]
-            Schema["schema.py\nbuild_collection_model"]
-        end
-
-        subgraph ops["Operations"]
-            Insert["InsertOperation"]
-            Query["QueryOperation"]
-            Search["SearchOperation"]
-            Delete["DeleteOperation"]
-        end
-
-        Logger["Logger\n(logging/logger.py)"]
+flowchart LR
+    subgraph app["Your Application"]
+        direction TB
+        AI["AI / RAG Pipeline"]
+        API["API / Service"]
+        Script["Script / CLI"]
     end
 
-    MilvusLite[("Milvus Lite\n.db file")]
+    subgraph kit["milvuslite-kit"]
+        direction TB
+        YAML["config.yaml\n(schema, indexes, defaults)"]
+        Plugin["MilvusLiteKit\ninsert · search · query · delete\nsync_schema · validate_schema"]
+    end
 
-    User -->|"from_yaml() / dict"| Plugin
-    Plugin --> Loader --> Validator
-    Plugin --> Schema --> CollModel
-    CollModel --> ColModel
-    Plugin --> Logger
-    Plugin --> CollMgr
-    Plugin --> IdxMgr
-    Plugin --> Insert
-    Plugin --> Query
-    Plugin --> Search
-    Plugin --> Delete
-    CollMgr --> ClientWrapper
-    IdxMgr --> ClientWrapper
-    Insert --> ClientWrapper
-    Query --> ClientWrapper
-    Search --> ClientWrapper
-    Delete --> ClientWrapper
-    ClientWrapper -->|"MilvusClient(uri=...)"| MilvusLite
+    DB[("Milvus Lite\n.db file\n(embedded, no server)")]
+
+    app -->|"plugin.insert()\nplugin.search()\nplugin.query()\nplugin.delete()"| Plugin
+    YAML -->|"from_yaml()"| Plugin
+    Plugin -->|"MilvusClient"| DB
 ```
+
+**Without milvuslite-kit** you write boilerplate for every collection: create schemas, build indexes, manage connections, format filters, and parse results.
+
+**With milvuslite-kit** you declare your schema once in YAML and call simple methods — the kit handles everything in between.
 
 ## Install
 
