@@ -15,7 +15,73 @@ with MilvusLiteKit.from_yaml("config.yaml") as plugin:
 
 > **Milvus Lite** is one of three Milvus deployment modes — alongside Standalone and Distributed. milvuslite-kit targets Lite specifically: local development, embedded apps, and lightweight production workloads that don't need a running server.
 
+## Architecture
+
+```mermaid
+flowchart TD
+    User(["Your Application"])
+
+    subgraph milvuslite_kit["milvuslite-kit"]
+        Plugin["MilvusLiteKit\n(plugin.py)"]
+
+        subgraph config["Config Layer"]
+            Loader["loader.py\nload_config()"]
+            Validator["validator.py\nvalidate_config()"]
+        end
+
+        subgraph models["Models"]
+            CollModel["CollectionModel"]
+            ColModel["ColumnModel"]
+        end
+
+        subgraph core["Core Layer"]
+            ClientWrapper["MilvusClientWrapper\n(lazy connection)"]
+            CollMgr["CollectionManager\nsync / drop / reset"]
+            IdxMgr["IndexManager\ncreate_index"]
+            Schema["schema.py\nbuild_collection_model"]
+        end
+
+        subgraph ops["Operations"]
+            Insert["InsertOperation"]
+            Query["QueryOperation"]
+            Search["SearchOperation"]
+            Delete["DeleteOperation"]
+        end
+
+        Logger["Logger\n(logging/logger.py)"]
+    end
+
+    MilvusLite[("Milvus Lite\n.db file")]
+
+    User -->|"from_yaml() / dict"| Plugin
+    Plugin --> Loader --> Validator
+    Plugin --> Schema --> CollModel
+    CollModel --> ColModel
+    Plugin --> Logger
+    Plugin --> CollMgr
+    Plugin --> IdxMgr
+    Plugin --> Insert
+    Plugin --> Query
+    Plugin --> Search
+    Plugin --> Delete
+    CollMgr --> ClientWrapper
+    IdxMgr --> ClientWrapper
+    Insert --> ClientWrapper
+    Query --> ClientWrapper
+    Search --> ClientWrapper
+    Delete --> ClientWrapper
+    ClientWrapper -->|"MilvusClient(uri=...)"| MilvusLite
+```
+
 ## Install
+
+Install as a package (recommended):
+
+```bash
+pip install -e .
+```
+
+Or install dependencies directly:
 
 ```bash
 pip install -r requirements.txt
